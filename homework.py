@@ -54,8 +54,7 @@ class Training:
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий."""
         raise NotImplementedError(
-            'Метод должен быть определен в дочернем классе.'
-            )
+            'Метод должен быть определен в дочернем классе.')
 
     def show_training_info(self) -> InfoMessage:
         """Вернуть информационное сообщение о выполненной тренировке."""
