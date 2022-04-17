@@ -1,6 +1,5 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, fields
 from typing import Type, Dict
-
 
 @dataclass
 class InfoMessage:
@@ -21,23 +20,17 @@ class InfoMessage:
         return self.MESSAGE.format(**asdict(self))
 
 
+@dataclass
 class Training:
     """Базовый класс тренировки."""
 
-    LEN_STEP: float = 0.65
-    M_IN_KM: int = 1000
+    LEN_STEP = 0.65
+    M_IN_KM = 1000
     MINUTES = 60
 
-    def __init__(
-        self,
-        action: int,
-        duration: float,
-        weight: float,
-    ) -> None:
-
-        self.action = action
-        self.duration = duration
-        self.weight = weight
+    action: int
+    duration: float
+    weight: float
 
     def get_distance(self) -> float:
         """Получить дистанцию в км."""
@@ -65,10 +58,11 @@ class Training:
         )
 
 
+@dataclass
 class Running(Training):
     """Тренировка: бег."""
-    MEAN_SPEED__COEF_1: float = 18
-    MEAN_SPEED_COEF_2: float = 20
+    MEAN_SPEED__COEF_1 = 18
+    MEAN_SPEED_COEF_2 = 20
 
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий."""
@@ -81,21 +75,15 @@ class Running(Training):
         )
 
 
+@dataclass
 class SportsWalking(Training):
     """Тренировка: спортивная ходьба."""
-    WEIGHT_1: float = 0.035
-    INDEX: int = 2
-    WEIGHT_2: float = 0.029
 
-    def __init__(
-        self,
-        action: int,
-        duration: float,
-        weight: float,
-        height: float
-    ) -> None:
-        super().__init__(action, duration, weight)
-        self.height = height
+    WEIGHT_1 = 0.035
+    INDEX = 2
+    WEIGHT_2 = 0.029
+
+    height: float
 
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий."""
@@ -107,29 +95,21 @@ class SportsWalking(Training):
         ) * self.duration * self.MINUTES
 
 
+@dataclass
 class Swimming(Training):
     """Тренировка: плавание."""
 
-    LEN_STEP: float = 1.38
-    MEAN_SPEED_COEF_1: float = 1.1
-    MEAN_SPEED_COEF_2: int = 2
+    LEN_STEP = 1.38
+    MEAN_SPEED_COEF_1 = 1.1
+    WEIGHT_COEF = 2
 
-    def __init__(
-        self,
-        action: int,
-        duration: float,
-        weight: float,
-        length_pool: int,
-        count_pool: int,
-    ) -> None:
-        super().__init__(action, duration, weight)
-        self.length_pool = length_pool
-        self.count_pool = count_pool
+    length_pool: int
+    count_pool: int
 
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий."""
         return ((self.get_mean_speed() + self.MEAN_SPEED_COEF_1)
-                * self.MEAN_SPEED_COEF_2 * self.weight)
+                * self.WEIGHT_COEF * self.weight)
 
     def get_mean_speed(self) -> float:
         """Получить среднюю скорость движения."""
@@ -144,24 +124,30 @@ def read_package(workout_type: str, data: list) -> Training:
         "RUN": Running,
         "WLK": SportsWalking
     }
-
     if workout_type not in training_types:
-        raise KeyError(f"Invalid key {workout_type}. Check workout types.")
-    else:
-        return training_types[workout_type](*data)
+        raise KeyError(workout_type)
+    if len(fields(training_types[workout_type])) != len(data):
+        raise TypeError(len(fields(training_types[workout_type])))
+    return training_types[workout_type](*data)
 
 
-def main(training: Training) -> None:
+def main(packages) -> None:
     """Главная функция."""
-    print(training.show_training_info().get_message())
+    for workout_type, data in packages:
+        try:
+            print(read_package(workout_type, data).show_training_info().get_message())
+        except KeyError as key_err:
+            print(f"Тип тренировки {key_err} отсутствует в словаре training_types. Проверьте данные.")
+        except TypeError as type_error:
+            print(f"Количество переданных данных в класс {workout_type} не соответствует количеству полей этого класса. "
+                f"Ожидается: {type_error}, Передано: {len(data)}")
 
 
 if __name__ == "__main__":
     packages = [
-        ("SWM", [720, 1, 80, 25, 40]),
-        ("RUN", [15000, 1, 75]),
+        ("SWMf", [720, 1, 80, 25, 4]),
+        ("RUN", [15000, 1, 75, 234]),
         ("WLK", [9000, 1, 75, 180])
     ]
 
-    for workout_type, data in packages:
-        main(read_package(workout_type, data))
+    main(packages)
